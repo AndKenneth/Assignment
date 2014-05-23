@@ -4,47 +4,65 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import java.util.Stack;
 
+public class findcomponents {
 
-public class dfs {
-
+	/**
+	 * @param args
+	 */
 	public static void main(String[] args) {
-		
 		try {
-			System.setIn(new FileInputStream("list.txt"));
-			System.setOut(new PrintStream(new FileOutputStream("dfs.txt")));
-			//System.setErr(new PrintStream(new FileOutputStream("error.out")));
-			dfs instance = new dfs();
-			instance.start();
+			System.setOut(new PrintStream(new FileOutputStream("components.txt")));
 		} catch (FileNotFoundException e) {
-			System.err.println("list.txt was not found");
+			System.err.println("File not found");
 		}
-
-
-	}
-
-	private void start() {
-		Kgraph graph = new Kgraph();
-		output(graph.doDFS());
+		
+		findcomponents instance = new findcomponents();
+		instance.start();
 		
 	}
 	
-	private void output(ArrayList<Integer> list) {
-		Integer[] outputArray = new Integer[list.size()];
-		outputArray = list.toArray(outputArray);
-		 for (int i = 0; i < outputArray.length; i++) System.out.format("%d,%d%n", i, outputArray[i]);
+	private void start() {
+		Kgraph reverseGraph =null;
+		Kgraph normalGraph = null;
+		try {
+			reverseGraph = new Kgraph("reverselist.txt");
+			normalGraph = new Kgraph("list.txt");
+		} catch (FileNotFoundException e) {
+			System.err.println("Files not found");
+		}
+		
+		Integer[] DFS = normalGraph.doDFS();
+		ArrayList<ArrayList<Integer>> components = reverseGraph.getComponents(DFS);
+		for (ArrayList<Integer> i : components) Collections.sort(i);
+		System.out.println(buildOutput(components, ","));
+	}
+	
+	private String buildOutput(ArrayList<ArrayList<Integer>> components, String delimiter) {
+		StringBuilder sb = new StringBuilder();
+		for (ArrayList<Integer> component : components) {
+			String delim = "";
+			for (Integer i : component) {
+				sb.append(delim + i);
+				delim = delimiter;
+			}
+			sb.append("\n");
+		}
+		
+		return sb.toString();
 	}
 	
 	
 	private class Kgraph {
 		private Knode[] graph;
 		
-		public Kgraph() {
+		public Kgraph(String file) throws FileNotFoundException {
 			ArrayList<Knode> graphList = new ArrayList<Knode>();
-			Scanner in = new Scanner(System.in);
+			Scanner in = new Scanner(new FileInputStream(file));
 			while (in.hasNext()) {
 				graphList.add(new Knode(in.next()));
 			}
@@ -63,10 +81,47 @@ public class dfs {
 			return true;
 		}
 		
-		public ArrayList<Integer> doDFS(){
+		public ArrayList<ArrayList<Integer>> getComponents(Integer[] DFS) {
+			setUnprocessed();
+			ArrayList<ArrayList<Integer>> componentsList = new ArrayList<ArrayList<Integer>>();
+			while(!processed()) {
+				Stack<Integer> stack = new Stack<Integer>();
+
+				int current = -1;
+				for (int i = 0; i < DFS.length; i++) if (graph[DFS[i]].getColor() == Kcolor.WHITE) current = DFS[i];
+
+				//current will represent the highest number that is unprocessed
+				ArrayList<Integer> component = new ArrayList<Integer>();
+
+				seen(current, stack);
+				//do a dfs on component, then add component to overall list
+				while (!stack.isEmpty()) {
+					current = stack.peek();
+					int lowest = Integer.MAX_VALUE;
+					boolean white = false;
+					for (Integer i : graph[current]) {
+						if (indexIsWhite(i)){
+							lowest = Math.min(lowest, i);
+							white = true;
+						}
+					}
+					if (white) {
+						seen(lowest, stack);
+					}
+					else {
+						process(current, component, stack);
+					}
+				}
+				componentsList.add(component);
+			}
+			return componentsList;
+		}
+
+		
+		public Integer[] doDFS(){
+			setUnprocessed();
 			Stack<Integer> stack = new Stack<Integer>();
 			ArrayList<Integer> processedList = new ArrayList<Integer>();
-			System.err.println("START DO DFS");
 			while (!processed()) {
 				//take lowest unprocessed
 				int current = -1;
@@ -92,30 +147,32 @@ public class dfs {
 							white = true;
 						}
 					}
-					if (white) {
-						seen(lowest, stack);
-					} else {
-						process(current, processedList, stack);
-					}
+					if (white) seen(lowest, stack);
+					else process(current, processedList, stack);
 				}
 				stack.push(-1);
 			}
 			
-			
-			return processedList;
+			Integer[] outputArray = new Integer[processedList.size()];
+			outputArray = processedList.toArray(outputArray);
+			return outputArray;
 		}
 		
 		private void seen(int index, Stack<Integer> stack) {
 			stack.push(index);
 			graph[index].setGrey();
-			System.err.println("SEEN Index " + index);
 		}
 		
 		private void process(int index, ArrayList<Integer> list, Stack<Integer> stack) {
 			stack.pop();
 			graph[index].setBlack();
 			list.add(index);
-			System.err.println("PROC Index " + index);
+		}
+		
+		private void setUnprocessed() {
+			for (int i = 0; i < graph.length; i++) {
+				graph[i].setWhite();
+			}
 		}
 		
 		private boolean indexIsWhite(int i) {
@@ -168,6 +225,10 @@ public class dfs {
 		
 		public void setBlack() {
 			this.color = Kcolor.BLACK;
+		}
+		
+		public void setWhite() {
+			this.color = Kcolor.WHITE;
 		}
 		
 		public String toString() {
