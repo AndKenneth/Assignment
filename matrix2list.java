@@ -1,5 +1,5 @@
 import java.io.*;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.Scanner;
 
 
@@ -16,13 +16,13 @@ public class matrix2list {
 	}
 	
 	private void start() {
-		LinkedList<String> nodeStrings = getNodes();
+		ArrayList<String> nodeStrings = getNodes();
 		for (String n : nodeStrings) System.out.println(convert2list(n));
 		
 	}
 	
-	private LinkedList<String> getNodes() {
-		LinkedList<String> nodeStrings = new LinkedList<String>();
+	private ArrayList<String> getNodes() {
+		ArrayList<String> nodeStrings = new ArrayList<String>();
 		Scanner in = new Scanner(System.in);
 		while (in.hasNext()) {
 			nodeStrings.add(in.nextLine());
